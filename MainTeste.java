@@ -3,7 +3,7 @@ import java.util.Scanner;
 public class MainTeste {
     public static void main (String args[]) {
         int opcao = 0;
-        AgendadordeConsulta agendador = new AgendadordeConsulta();
+        AgendadordeConsulta agendador = new AgendadordeConsulta(paciente);
 
         System.out.print("\n  1. Agendar Consulta\n");
         System.out.print("Opção: ");

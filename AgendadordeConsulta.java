@@ -15,9 +15,11 @@ public class AgendadordeConsulta {
     Scanner sc = new Scanner(System.in);
     private String medicoEscolhido;
     private int escolhaData = 0;
+    private UsuarioPaciente pacienteLogado;
 
-    public AgendadordeConsulta() {
+    public AgendadordeConsulta(UsuarioPaciente pacienteLogado) {
         this.consultas = new ArrayList<>();
+        this.pacienteLogado = pacienteLogado;
     }
 
     public void agendarConsulta() {
@@ -100,8 +102,8 @@ public class AgendadordeConsulta {
 
         Agendamento novo = new Agendamento(null, dataEscolhida, horaEscolhida);
         medico.adicionarAgendamento(novo);
+        EscreverArquivo.escreverAgendamento(medico, pacienteLogado, dataEscolhida, horaEscolhida);
         System.out.println("Consulta marcada com sucesso!");
-
     }
 
     public void exibirMedicos() {
@@ -112,10 +114,13 @@ public class AgendadordeConsulta {
             for (File arquivo : arquivos) {
                 Map<String, String> dados = LerArquivo.lerCamposDoArquivo(arquivo.getAbsolutePath());
                 if (dados != null) {
-                    System.out.println("Nome: " + dados.get("Nome"));
-                    System.out.println("Especialidade: " + dados.get("Especialidade"));
-                    System.out.println("Planos: " + dados.get("Planos_de_Saúde_Atendidos"));
-                    System.out.println("----------------------------");
+                    if (dados.get("Planos_de_Saúde_Atendidos").contains(pacienteLogado.getPlanoSaude()))  {
+                        System.out.println("Nome: " + dados.get("Nome"));
+                        System.out.println("Especialidade: " + dados.get("Especialidade"));
+                        System.out.println("Planos: " + dados.get("Planos_de_Saúde_Atendidos"));
+                        System.out.println("----------------------------");
+                    }
+
                 }
             }
         }

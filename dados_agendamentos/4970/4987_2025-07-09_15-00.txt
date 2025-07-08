@@ -1,0 +1,4 @@
+Médico: Kaynan (ID: 4970)
+Paciente: Bia (ID: 4987)
+Data: 09/07/2025
+Hora: 15:00

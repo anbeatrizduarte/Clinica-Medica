@@ -74,14 +74,14 @@ public class MainProvisorio {
                 String especialidade = InputGerenciador.lerString("Digite a especialidade do médico: ");
                 List<String> planosSaude = InputGerenciador.lerLista(
                         "Digite os planos de saúde que o médico atende (separados por vírgula, ex: Unimed,Pix): ",
-                        ","
-                );
+                        ",");
                 novoUsuario = UsuarioFactory.criarMedico(senha, nome, especialidade, planosSaude);
                 break;
             case 2:
                 System.out.println("\n--- Informações para o Novo Paciente ---");
                 int idade = InputGerenciador.lerInteiro("Digite a idade do paciente: ");
-                String planoSaudePaciente = InputGerenciador.lerString("Digite o plano de saúde do paciente ou 'Sem' caso nao tenha: ");
+                String planoSaudePaciente = InputGerenciador
+                        .lerString("Digite o plano de saúde do paciente ou 'Sem' caso nao tenha: ");
                 novoUsuario = UsuarioFactory.criarPaciente(senha, nome, idade, planoSaudePaciente);
                 break;
             default:
@@ -129,7 +129,7 @@ public class MainProvisorio {
                     System.out.println("Funcionalidade de visualizar agendamentos em desenvolvimento.");
                     break;
                 case 3:
-                    //Implementar: Realizar Consulta
+                    // Implementar: Realizar Consulta
                     // Médico informa descrição (sintomas, tratamento, medicamentos, exames...).
                     // Lógica para gerar conta se paciente não tiver plano.
                     System.out.println("Funcionalidade de realizar consulta em desenvolvimento.");
@@ -160,10 +160,11 @@ public class MainProvisorio {
                     alterarDadosUsuarioLogado(paciente);
                     break;
                 case 2:
-                    //Implementar: Buscar e Visualizar Médicos
+                    // Implementar: Buscar e Visualizar Médicos
                     // O paciente deve poder pesquisar médicos por nome/especialidade.
                     // O sistema deve mostrar nome, especialidade, estrelas e últimas avaliações.
-                    // Regra: Mostrar apenas médicos que atendem ao plano do paciente; se sem plano, mostra todos.
+                    // Regra: Mostrar apenas médicos que atendem ao plano do paciente; se sem plano,
+                    // mostra todos.
                     System.out.println("Funcionalidade de buscar e visualizar médicos em desenvolvimento.");
                     break;
                 case 3:
@@ -172,6 +173,8 @@ public class MainProvisorio {
                     // Regra: Médico atende até 3 por dia; se lotado, vai para lista de espera.
                     // Isso envolve a criação de objetos de Agendamento e gerenciamento de horários.
                     System.out.println("Funcionalidade de agendar consulta em desenvolvimento.");
+                    AgendadordeConsulta agendador = new AgendadordeConsulta(paciente);
+                    agendador.agendarConsulta();
                     break;
                 case 4:
                     // Implementar: Cancelar Agendamento
@@ -200,7 +203,8 @@ public class MainProvisorio {
         System.out.println("Nome atual: " + usuarioParaAlterar.getNome());
         System.out.println("Senha atual: " + usuarioParaAlterar.getSenha());
 
-        String novoNome = InputGerenciador.lerString("Novo nome (deixe em branco para manter '" + usuarioParaAlterar.getNome() + "'): ");
+        String novoNome = InputGerenciador
+                .lerString("Novo nome (deixe em branco para manter '" + usuarioParaAlterar.getNome() + "'): ");
         if (!novoNome.isEmpty()) {
             usuarioParaAlterar.setNome(novoNome);
         }
@@ -212,14 +216,18 @@ public class MainProvisorio {
         if (usuarioParaAlterar instanceof UsuarioMedico) {
             UsuarioMedico medico = (UsuarioMedico) usuarioParaAlterar;
             System.out.println("Especialidade atual: " + medico.getEspecialidade());
-            String novaEspecialidade = InputGerenciador.lerString("Nova especialidade (deixe em branco para manter '" + medico.getEspecialidade() + "'): ");
+            String novaEspecialidade = InputGerenciador.lerString(
+                    "Nova especialidade (deixe em branco para manter '" + medico.getEspecialidade() + "'): ");
             if (!novaEspecialidade.isEmpty()) {
                 medico.setEspecialidade(novaEspecialidade);
             }
             String planosAtuais = String.join(",", medico.getPlanosSaudeAtendidos());
-            String novosPlanosStr = InputGerenciador.lerString("Novos planos de saúde (separados por vírgula, deixe em branco para manter '" + planosAtuais + "'): ");
+            String novosPlanosStr = InputGerenciador
+                    .lerString("Novos planos de saúde (separados por vírgula, deixe em branco para manter '"
+                            + planosAtuais + "'): ");
             if (!novosPlanosStr.isEmpty()) {
-                List<String> novosPlanos = Arrays.asList(novosPlanosStr.split(",")).stream().map(String::trim).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                List<String> novosPlanos = Arrays.asList(novosPlanosStr.split(",")).stream().map(String::trim)
+                        .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
                 medico.setPlanosSaudeAtendidos(novosPlanos);
             }
             EscreverArquivo.escreverDadosUsuario(medico); // Salva o objeto médico atualizado
@@ -230,7 +238,8 @@ public class MainProvisorio {
             System.out.println("Idade atual: " + paciente.getIdade());
             System.out.println("Plano de Saúde atual: " + paciente.getPlanoSaude());
 
-            String novaIdadeStr = InputGerenciador.lerString("Nova idade (deixe em branco para manter '" + paciente.getIdade() + "'): ");
+            String novaIdadeStr = InputGerenciador
+                    .lerString("Nova idade (deixe em branco para manter '" + paciente.getIdade() + "'): ");
             if (!novaIdadeStr.isEmpty()) {
                 try {
                     paciente.setIdade(Integer.parseInt(novaIdadeStr));
@@ -238,7 +247,8 @@ public class MainProvisorio {
                     System.out.println("Idade inválida. Idade não foi alterada.");
                 }
             }
-            String novoPlanoSaude = InputGerenciador.lerString("Novo plano de saúde (deixe em branco para manter '" + paciente.getPlanoSaude() + "'): ");
+            String novoPlanoSaude = InputGerenciador.lerString(
+                    "Novo plano de saúde (deixe em branco para manter '" + paciente.getPlanoSaude() + "'): ");
             if (!novoPlanoSaude.isEmpty()) {
                 paciente.setPlanoSaude(novoPlanoSaude);
             }
