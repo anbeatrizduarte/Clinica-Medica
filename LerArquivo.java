@@ -63,9 +63,9 @@ public class LerArquivo {
                 String nome = dados.get("Nome");
                 String especialidade = dados.get("Especialidade");
                 String planosStr = dados.get("Planos_de_Saúde_Atendidos");
-                List<String> planosSaude = (planosStr != null && !planosStr.equals("Nenhum")) ?
-                        Arrays.asList(planosStr.split(",")).stream().map(String::trim).collect(Collectors.toList()) :
-                        new ArrayList<>();
+                List<String> planosSaude = (planosStr != null && !planosStr.equals("Nenhum"))
+                        ? Arrays.asList(planosStr.split(",")).stream().map(String::trim).collect(Collectors.toList())
+                        : new ArrayList<>();
 
                 UsuarioMedico medico = UsuarioFactory.criarMedico(senha, nome, especialidade, planosSaude);
                 medico.setId(Integer.parseInt(dados.get("ID")));
@@ -93,15 +93,17 @@ public class LerArquivo {
             if (arquivosMedicos != null) {
                 for (File arquivo : arquivosMedicos) {
                     Map<String, String> dados = lerCamposDoArquivo(arquivo.getAbsolutePath());
-                    if (dados != null && "Medico".equals(dados.get("Tipo")) && dados.get("Nome").equalsIgnoreCase(nome)) {
+                    if (dados != null && "Medico".equals(dados.get("Tipo"))
+                            && dados.get("Nome").equalsIgnoreCase(nome)) {
                         // Reconstrua o objeto Medico e retorne
                         try {
                             String senha = dados.get("Senha");
                             String especialidade = dados.get("Especialidade");
                             String planosStr = dados.get("Planos_de_Saúde_Atendidos");
-                            List<String> planosSaude = (planosStr != null && !planosStr.equals("Nenhum")) ?
-                                    Arrays.asList(planosStr.split(",")).stream().map(String::trim).collect(Collectors.toList()) :
-                                    new ArrayList<>();
+                            List<String> planosSaude = (planosStr != null && !planosStr.equals("Nenhum"))
+                                    ? Arrays.asList(planosStr.split(",")).stream().map(String::trim).collect(
+                                            Collectors.toList())
+                                    : new ArrayList<>();
                             UsuarioMedico medico = UsuarioFactory.criarMedico(senha, nome, especialidade, planosSaude);
                             medico.setId(Integer.parseInt(dados.get("ID")));
                             return medico;
@@ -123,7 +125,8 @@ public class LerArquivo {
             if (arquivosPacientes != null) {
                 for (File arquivo : arquivosPacientes) {
                     Map<String, String> dados = lerCamposDoArquivo(arquivo.getAbsolutePath());
-                    if (dados != null && "Paciente".equals(dados.get("Tipo")) && dados.get("Nome").equalsIgnoreCase(nome)) {
+                    if (dados != null && "Paciente".equals(dados.get("Tipo"))
+                            && dados.get("Nome").equalsIgnoreCase(nome)) {
                         try {
                             String senha = dados.get("Senha");
                             int idade = Integer.parseInt(dados.get("Idade"));
@@ -141,67 +144,116 @@ public class LerArquivo {
         }
         return null;
     }
-/*
-    public static List<Usuario> carregarTodosUsuarios() {
-        List<Usuario> usuariosCarregados = new ArrayList<>();
 
-        // Carregar médicos
-        File medicosDir = new File(MEDICOS_PASTA);
-        if (medicosDir.exists() && medicosDir.isDirectory()) {
-            File[] arquivosMedicos = medicosDir.listFiles((dir, name) -> name.endsWith(".txt"));
-            if (arquivosMedicos != null) {
-                for (File arquivo : arquivosMedicos) {
+    public static void listarArquivos(File diretorio, String tipo, UsuarioPaciente pacienteLogado) {
+        File[] arquivos = diretorio.listFiles();
+
+        if (arquivos != null) {
+            for (File arquivo : arquivos) {
+                if (arquivo.isDirectory()) {
+                    listarArquivos(arquivo, tipo, pacienteLogado); // recursão para subpastas
+                } else if (arquivo.getName().endsWith(".txt")) {
                     Map<String, String> dados = lerCamposDoArquivo(arquivo.getAbsolutePath());
-                    if (dados != null && "Medico".equals(dados.get("Tipo"))) {
-                        try {
-                            String senha = dados.get("Senha");
-                            String nome = dados.get("Nome");
-                            String especialidade = dados.get("Especialidade");
-                            // Tratar "Nenhum" para planos de saúde
-                            String planosStr = dados.get("Planos_de_Saúde_Atendidos");
-                            List<String> planosSaude = (planosStr != null && !planosStr.equals("Nenhum")) ?
-                                    Arrays.asList(planosStr.split(",")).stream().map(String::trim).collect(Collectors.toList()) :
-                                    new ArrayList<>();
+                    if (dados != null) {
+                        if ("medico".equalsIgnoreCase(tipo)) {
+                            if (dados.get("Planos_de_Saúde_Atendidos").contains(pacienteLogado.getPlanoSaude())) {
+                                System.out.println("Nome: " + dados.get("Nome"));
+                                System.out.println("Especialidade: " + dados.get("Especialidade"));
+                                System.out.println("Planos: " + dados.get("Planos_de_Saúde_Atendidos"));
+                                System.out.println("----------------------------");
+                            }
+                        } else if ("consulta".equalsIgnoreCase(tipo)) {
+                            String nomeArquivo = arquivo.getName();
+                            String idNoNome = nomeArquivo.split("_")[0];
 
-                            // Criamos um médico e depois setamos o ID, pois a fábrica gera um novo ID
-                            // Alternativa: Se o ID fosse passado para a fábrica, seria mais direto
-                            UsuarioMedico medico = UsuarioFactory.criarMedico(senha, nome, especialidade, planosSaude);
-                            medico.setId(Integer.parseInt(dados.get("ID"))); // Setamos o ID lido do arquivo
-                            usuariosCarregados.add(medico);
-                        } catch (NumberFormatException e) {
-                            System.err.println("Erro ao converter ID do médico em: " + arquivo.getName());
+                            if (idNoNome.equals(String.valueOf(pacienteLogado.getId()))) {
+                                if (dados != null) {
+                                    System.out.println("Data: " + dados.get("Data"));
+                                    System.out.println("Hora: " + dados.get("Hora"));
+                                    System.out.println("Médico: " + dados.get("Médico"));
+                                    System.out.println("----------------------------");
+                                }
+                            }
                         }
+
                     }
                 }
             }
         }
-
-        // Carregar pacientes
-        File pacientesDir = new File(PACIENTES_PASTA);
-        if (pacientesDir.exists() && pacientesDir.isDirectory()) {
-            File[] arquivosPacientes = pacientesDir.listFiles((dir, name) -> name.endsWith(".txt"));
-            if (arquivosPacientes != null) {
-                for (File arquivo : arquivosPacientes) {
-                    Map<String, String> dados = lerCamposDoArquivo(arquivo.getAbsolutePath());
-                    if (dados != null && "Paciente".equals(dados.get("Tipo"))) {
-                        try {
-                            String senha = dados.get("Senha");
-                            String nome = dados.get("Nome");
-                            int idade = Integer.parseInt(dados.get("Idade"));
-                            String planoSaude = dados.get("Plano_de_Saúde");
-
-                            // Criamos um paciente e depois setamos o ID
-                            UsuarioPaciente paciente = UsuarioFactory.criarPaciente(senha, nome, idade, planoSaude);
-                            paciente.setId(Integer.parseInt(dados.get("ID"))); // Setamos o ID lido do arquivo
-                            usuariosCarregados.add(paciente);
-                        } catch (NumberFormatException e) {
-                            System.err.println("Erro ao converter idade ou ID do paciente em: " + arquivo.getName());
-                        }
-                    }
-                }
-            }
-        }
-        return usuariosCarregados;
+        
     }
- */
+
+    /*
+     * public static List<Usuario> carregarTodosUsuarios() {
+     * List<Usuario> usuariosCarregados = new ArrayList<>();
+     * 
+     * // Carregar médicos
+     * File medicosDir = new File(MEDICOS_PASTA);
+     * if (medicosDir.exists() && medicosDir.isDirectory()) {
+     * File[] arquivosMedicos = medicosDir.listFiles((dir, name) ->
+     * name.endsWith(".txt"));
+     * if (arquivosMedicos != null) {
+     * for (File arquivo : arquivosMedicos) {
+     * Map<String, String> dados = lerCamposDoArquivo(arquivo.getAbsolutePath());
+     * if (dados != null && "Medico".equals(dados.get("Tipo"))) {
+     * try {
+     * String senha = dados.get("Senha");
+     * String nome = dados.get("Nome");
+     * String especialidade = dados.get("Especialidade");
+     * // Tratar "Nenhum" para planos de saúde
+     * String planosStr = dados.get("Planos_de_Saúde_Atendidos");
+     * List<String> planosSaude = (planosStr != null && !planosStr.equals("Nenhum"))
+     * ?
+     * Arrays.asList(planosStr.split(",")).stream().map(String::trim).collect(
+     * Collectors.toList()) :
+     * new ArrayList<>();
+     * 
+     * // Criamos um médico e depois setamos o ID, pois a fábrica gera um novo ID
+     * // Alternativa: Se o ID fosse passado para a fábrica, seria mais direto
+     * UsuarioMedico medico = UsuarioFactory.criarMedico(senha, nome, especialidade,
+     * planosSaude);
+     * medico.setId(Integer.parseInt(dados.get("ID"))); // Setamos o ID lido do
+     * arquivo
+     * usuariosCarregados.add(medico);
+     * } catch (NumberFormatException e) {
+     * System.err.println("Erro ao converter ID do médico em: " +
+     * arquivo.getName());
+     * }
+     * }
+     * }
+     * }
+     * }
+     * 
+     * // Carregar pacientes
+     * File pacientesDir = new File(PACIENTES_PASTA);
+     * if (pacientesDir.exists() && pacientesDir.isDirectory()) {
+     * File[] arquivosPacientes = pacientesDir.listFiles((dir, name) ->
+     * name.endsWith(".txt"));
+     * if (arquivosPacientes != null) {
+     * for (File arquivo : arquivosPacientes) {
+     * Map<String, String> dados = lerCamposDoArquivo(arquivo.getAbsolutePath());
+     * if (dados != null && "Paciente".equals(dados.get("Tipo"))) {
+     * try {
+     * String senha = dados.get("Senha");
+     * String nome = dados.get("Nome");
+     * int idade = Integer.parseInt(dados.get("Idade"));
+     * String planoSaude = dados.get("Plano_de_Saúde");
+     * 
+     * // Criamos um paciente e depois setamos o ID
+     * UsuarioPaciente paciente = UsuarioFactory.criarPaciente(senha, nome, idade,
+     * planoSaude);
+     * paciente.setId(Integer.parseInt(dados.get("ID"))); // Setamos o ID lido do
+     * arquivo
+     * usuariosCarregados.add(paciente);
+     * } catch (NumberFormatException e) {
+     * System.err.println("Erro ao converter idade ou ID do paciente em: " +
+     * arquivo.getName());
+     * }
+     * }
+     * }
+     * }
+     * }
+     * return usuariosCarregados;
+     * }
+     */
 }

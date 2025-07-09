@@ -1,21 +1,16 @@
 import java.io.File;
-import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.Scanner;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class AgendadordeConsulta {
     private final List<Consulta> consultas;
-    Scanner sc = new Scanner(System.in);
-    private String medicoEscolhido;
+    private final Scanner sc = new Scanner(System.in);
+    private final UsuarioPaciente pacienteLogado;
+    private final Map<String, List<UsuarioPaciente>> listaEspera = new HashMap<>();
+    private String medicoEscolhido, dataCancelar, horarioCancelar;
     private int escolhaData = 0;
-    private UsuarioPaciente pacienteLogado;
 
     public AgendadordeConsulta(UsuarioPaciente pacienteLogado) {
         this.consultas = new ArrayList<>();
@@ -36,7 +31,7 @@ public class AgendadordeConsulta {
         }
 
         LocalDate[] datasConsulta = { LocalDate.now(), LocalDate.now().plusDays(1), LocalDate.now().plusDays(2) };
-        System.out.print("  Datas disponíveis:  ");
+        System.out.print("\n  Datas disponíveis:  \n");
         for (int i = 0; i < datasConsulta.length; i++) {
             System.out.println((i + 1) + " - " + datasConsulta[i]);
         }
@@ -50,17 +45,26 @@ public class AgendadordeConsulta {
         }
 
         LocalDate dataEscolhida = datasConsulta[escolhaData - 1];
-        List<Agendamento> agendamentos = medico.getAgendamentos();
-        int contadorData = 0;
-        for (int i = 0; i < agendamentos.size(); i++) {
-            if (agendamentos.get(i).getData().equals(dataEscolhida)) {
-                contadorData++;
+
+        // Verificar todos os horários ocupados
+        Set<LocalTime> horariosOcupados = new HashSet<>();
+
+        List<Agendamento> agendamentosMedico = medico.getAgendamentos();
+        for (Agendamento ag : agendamentosMedico) {
+            if (ag.getData().equals(dataEscolhida)) {
+                horariosOcupados.add(ag.getHora());
             }
         }
 
-        if (contadorData >= 3) {
-            System.out.println("Limite de consultas atingido para essa data.");
-            return;
+        // Buscar arquivos recursivamente para encontrar horários ocupados na data
+        List<File> arquivosEncontrados = new ArrayList<>();
+        buscarArquivos(new File("dados_agendamentos"), arquivosEncontrados, dataEscolhida);
+
+        for (File arquivo : arquivosEncontrados) {
+            String[] partes = arquivo.getName().split("_");
+            String horaParte = partes[2].replace(".txt", "").replace("-", ":");
+            LocalTime horaOcupada = LocalTime.parse(horaParte);
+            horariosOcupados.add(horaOcupada);
         }
 
         LocalTime[] horariosConsultas = {
@@ -70,22 +74,22 @@ public class AgendadordeConsulta {
         };
 
         List<LocalTime> horariosDisponiveis = new ArrayList<>();
-        for (int i = 0; i < horariosConsultas.length; i++) {
-            boolean horarioOcupado = false;
-            for (int j = 0; j < agendamentos.size(); j++) {
-                if (agendamentos.get(j).getData().equals(dataEscolhida)
-                        && agendamentos.get(j).getHora().equals(horariosConsultas[i])) {
-                    horarioOcupado = true;
-                    break;
-                }
-            }
-
-            if (!horarioOcupado) {
-                horariosDisponiveis.add(horariosConsultas[i]);
+        for (LocalTime horario : horariosConsultas) {
+            if (!horariosOcupados.contains(horario)) {
+                horariosDisponiveis.add(horario);
             }
         }
 
-        System.out.println("Horários disponíveis:");
+        if (horariosDisponiveis.isEmpty()) {
+            // Lista de espera - adiciona o paciente para essa data
+            String chave = dataEscolhida.toString();
+            listaEspera.putIfAbsent(chave, new ArrayList<>());
+            listaEspera.get(chave).add(pacienteLogado);
+            System.out.println("Todos os horários estão ocupados. Você foi adicionado à lista de espera para " + chave);
+            return;
+        }
+
+        System.out.println("\nHorários disponíveis:");
         for (int i = 0; i < horariosDisponiveis.size(); i++) {
             System.out.println((i + 1) + " - " + horariosDisponiveis.get(i));
         }
@@ -106,21 +110,58 @@ public class AgendadordeConsulta {
         System.out.println("Consulta marcada com sucesso!");
     }
 
+    public void cancelarConsulta() {
+        System.out.print("\n=== Cancelar Consulta ===\n");
+        System.out.print("\n --- Consultas Marcadas --- \n");
+        exibirConsultas();
+        System.out.print("Selecione a data da consulta (dd/MM/yyyy): ");
+        dataCancelar = sc.nextLine();
+        System.out.print("Selecione o horário da consulta (HH:mm): ");
+        horarioCancelar = sc.nextLine();
+        System.out.print("Selecione o médico: ");
+        String medicoCancelar = sc.nextLine();
+
+        UsuarioMedico medico = LerArquivo.buscarMedicoPorNome(medicoCancelar);
+
+        DateTimeFormatter formatoEntrada = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate data = LocalDate.parse(dataCancelar, formatoEntrada);
+        String dataFormatada = data.toString();
+        String horaFormatada = horarioCancelar.replace(":", "-");
+
+        File arquivoConsultarDeletar = new File(
+                "dados_agendamentos/" + medico.getId() + "/" + pacienteLogado.getId() + "_" + dataFormatada + "_"
+                        + horaFormatada + ".txt");
+        if (arquivoConsultarDeletar.delete()) {
+            System.out.println("Consulta cancelada com sucesso!");
+        } else {
+            System.out.println("Falha ao cancelar consulta.");
+        }
+
+        String chave = dataFormatada;
+        if (listaEspera.containsKey(chave) && !listaEspera.get(chave).isEmpty()) {
+            UsuarioPaciente proximo = listaEspera.get(chave).remove(0);
+            System.out.println("Paciente da lista de espera promovido: " + proximo.getNome());
+            // Aqui você poderia automaticamente remarcar a consulta para o paciente
+            // promovido
+        }
+    }
+
     public void exibirMedicos() {
-        File medicosDir = new File("dados_usuarios\\medicos");
-        File[] arquivos = medicosDir.listFiles((dir, name) -> name.endsWith(".txt"));
+        LerArquivo.listarArquivos(new File("dados_usuarios/medicos"), "medico", pacienteLogado);
+    }
 
+    public void exibirConsultas() {
+        LerArquivo.listarArquivos(new File("dados_agendamentos"), "consulta", pacienteLogado);
+    }
+
+    private void buscarArquivos(File pasta, List<File> lista, LocalDate dataEscolhida) {
+        File[] arquivos = pasta.listFiles();
         if (arquivos != null) {
-            for (File arquivo : arquivos) {
-                Map<String, String> dados = LerArquivo.lerCamposDoArquivo(arquivo.getAbsolutePath());
-                if (dados != null) {
-                    if (dados.get("Planos_de_Saúde_Atendidos").contains(pacienteLogado.getPlanoSaude()))  {
-                        System.out.println("Nome: " + dados.get("Nome"));
-                        System.out.println("Especialidade: " + dados.get("Especialidade"));
-                        System.out.println("Planos: " + dados.get("Planos_de_Saúde_Atendidos"));
-                        System.out.println("----------------------------");
-                    }
-
+            for (File f : arquivos) {
+                if (f.isDirectory()) {
+                    buscarArquivos(f, lista, dataEscolhida); // chamada recursiva para subpastas
+                } else if (f.getName().endsWith(".txt") && f.getName().contains(dataEscolhida.toString())) {
+                    lista.add(f);
                 }
             }
         }

@@ -146,6 +146,7 @@ public class MainProvisorio {
     private static void menuPaciente(UsuarioPaciente paciente) {
         System.out.println("\n=== Menu do Paciente: " + paciente.getNome() + " (ID: " + paciente.getId() + ") ===");
         int opcao;
+        AgendadordeConsulta agendador = new AgendadordeConsulta(paciente);
         do {
             System.out.println("1. Alterar Meus Dados"); // Já implementado
             System.out.println("2. Buscar e Visualizar Médicos"); // Para Implementar
@@ -172,14 +173,13 @@ public class MainProvisorio {
                     // Selecionar médico e data.
                     // Regra: Médico atende até 3 por dia; se lotado, vai para lista de espera.
                     // Isso envolve a criação de objetos de Agendamento e gerenciamento de horários.
-                    System.out.println("Funcionalidade de agendar consulta em desenvolvimento.");
-                    AgendadordeConsulta agendador = new AgendadordeConsulta(paciente);
                     agendador.agendarConsulta();
                     break;
                 case 4:
                     // Implementar: Cancelar Agendamento
                     // Regra: Se houver lista de espera, aloca o próximo da lista.
                     System.out.println("Funcionalidade de cancelar agendamento em desenvolvimento.");
+                    agendador.cancelarConsulta();
                     break;
                 case 5:
                     // Implementar: Avaliar Consulta
