@@ -139,10 +139,7 @@ public class AgendadordeConsulta {
 
         String chave = dataFormatada;
         if (listaEspera.containsKey(chave) && !listaEspera.get(chave).isEmpty()) {
-            UsuarioPaciente proximo = listaEspera.get(chave).remove(0);
-            System.out.println("Paciente da lista de espera promovido: " + proximo.getNome());
-            // Aqui você poderia automaticamente remarcar a consulta para o paciente
-            // promovido
+            listaEspera.get(chave).remove(0);
         }
     }
 

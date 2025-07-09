@@ -113,6 +113,7 @@ public class MainProvisorio {
 
     private static void menuMedico(UsuarioMedico medico) {
         System.out.println("\n=== Menu do Médico: " + medico.getNome() + " (ID: " + medico.getId() + ") ===");
+        RealizarConsulta realizador = new RealizarConsulta(medico);
         int opcao;
         do {
             System.out.println("1. Alterar Meus Dados"); // Já implementado
@@ -126,13 +127,10 @@ public class MainProvisorio {
                     alterarDadosUsuarioLogado(medico);
                     break;
                 case 2:
-                    System.out.println("Funcionalidade de visualizar agendamentos em desenvolvimento.");
+                    realizador.visualizarConsultas();
                     break;
                 case 3:
-                    // Implementar: Realizar Consulta
-                    // Médico informa descrição (sintomas, tratamento, medicamentos, exames...).
-                    // Lógica para gerar conta se paciente não tiver plano.
-                    System.out.println("Funcionalidade de realizar consulta em desenvolvimento.");
+                    realizador.realizarConsulta();
                     break;
                 case 0:
                     System.out.println("Fazendo logout do Dr. " + medico.getNome() + ".");

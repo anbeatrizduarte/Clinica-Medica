@@ -145,42 +145,49 @@ public class LerArquivo {
         return null;
     }
 
-    public static void listarArquivos(File diretorio, String tipo, UsuarioPaciente pacienteLogado) {
+    public static void listarArquivos(File diretorio, String tipo, Usuario usuario) {
         File[] arquivos = diretorio.listFiles();
 
         if (arquivos != null) {
             for (File arquivo : arquivos) {
                 if (arquivo.isDirectory()) {
-                    listarArquivos(arquivo, tipo, pacienteLogado); // recursão para subpastas
+                    listarArquivos(arquivo, tipo, usuario); // Correção aqui!
                 } else if (arquivo.getName().endsWith(".txt")) {
                     Map<String, String> dados = lerCamposDoArquivo(arquivo.getAbsolutePath());
                     if (dados != null) {
-                        if ("medico".equalsIgnoreCase(tipo)) {
-                            if (dados.get("Planos_de_Saúde_Atendidos").contains(pacienteLogado.getPlanoSaude())) {
+                        if ("medico".equalsIgnoreCase(tipo) && usuario instanceof UsuarioPaciente paciente) {
+                            if (dados.get("Planos_de_Saúde_Atendidos").contains(paciente.getPlanoSaude())) {
                                 System.out.println("Nome: " + dados.get("Nome"));
                                 System.out.println("Especialidade: " + dados.get("Especialidade"));
                                 System.out.println("Planos: " + dados.get("Planos_de_Saúde_Atendidos"));
                                 System.out.println("----------------------------");
                             }
-                        } else if ("consulta".equalsIgnoreCase(tipo)) {
-                            String nomeArquivo = arquivo.getName();
-                            String idNoNome = nomeArquivo.split("_")[0];
 
-                            if (idNoNome.equals(String.valueOf(pacienteLogado.getId()))) {
-                                if (dados != null) {
+                        } else if ("consulta".equalsIgnoreCase(tipo)) {
+                            if (usuario instanceof UsuarioPaciente paciente) {
+                                String nomeArquivo = arquivo.getName();
+                                String idNoNome = nomeArquivo.split("_")[0];
+
+                                if (idNoNome.equals(String.valueOf(paciente.getId()))) {
                                     System.out.println("Data: " + dados.get("Data"));
                                     System.out.println("Hora: " + dados.get("Hora"));
                                     System.out.println("Médico: " + dados.get("Médico"));
                                     System.out.println("----------------------------");
                                 }
+                            } else if (usuario instanceof UsuarioMedico medico) {
+                                String pastaMedico = String.valueOf(medico.getId());
+                                if (arquivo.getParentFile().getName().equals(pastaMedico)) {
+                                    System.out.println("Paciente: " + dados.get("Paciente"));
+                                    System.out.println("Data: " + dados.get("Data"));
+                                    System.out.println("Hora: " + dados.get("Hora"));
+                                    System.out.println("----------------------------");
+                                }
                             }
                         }
-
                     }
                 }
             }
         }
-        
     }
 
     /*
