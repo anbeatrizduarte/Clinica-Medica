@@ -145,6 +145,7 @@ public class MainProvisorio {
         System.out.println("\n=== Menu do Paciente: " + paciente.getNome() + " (ID: " + paciente.getId() + ") ===");
         int opcao;
         AgendadordeConsulta agendador = new AgendadordeConsulta(paciente);
+        Avaliacao avaliador = new Avaliacao(paciente);
         do {
             System.out.println("1. Alterar Meus Dados"); // Já implementado
             System.out.println("2. Buscar e Visualizar Médicos"); // Para Implementar
@@ -183,7 +184,7 @@ public class MainProvisorio {
                     // Implementar: Avaliar Consulta
                     // Após uma consulta, o paciente pode dar estrelas (1-5) e um texto.
                     // A avaliação deve ser associada a uma consulta já realizada.
-                    System.out.println("Funcionalidade de avaliar consulta em desenvolvimento.");
+                    avaliador.avaliarConsulta();
                     break;
                 case 0:
                     System.out.println("Fazendo logout do paciente " + paciente.getNome() + ".");

@@ -1,7 +1,8 @@
 import java.io.File;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Scanner;
+import java.util.*;
 
 public class RealizarConsulta {
     private UsuarioMedico medico;
@@ -47,30 +48,49 @@ public class RealizarConsulta {
         LocalDate data = LocalDate.parse(dataInput, formatoEntrada);
         String dataConsulta = data.format(formatoArquivo);
 
+        // Converter horário para LocalTime
+        java.time.LocalTime hora = java.time.LocalTime.parse(horarioConsulta);
+
+        // Buscar paciente pelo ID (usando LerArquivo)
+        int idPacienteInt;
+        try {
+            idPacienteInt = Integer.parseInt(idPaciente);
+        } catch (NumberFormatException e) {
+            System.out.println("ID do paciente inválido.");
+            return;
+        }
+
+        UsuarioPaciente paciente = (UsuarioPaciente) LerArquivo.buscarUsuarioPorId(idPacienteInt, "Paciente");
+        if (paciente == null) {
+            System.out.println("Paciente não encontrado.");
+            return;
+        }
+
+        // Criar objeto Consulta
+        LocalDateTime dataHoraConsulta = LocalDateTime.of(data, hora);
+        Consulta consulta = new Consulta(medico, paciente, dataHoraConsulta, StatusConsulta.AGENDADA);
+
+        // Atualizar status para REALIZADA usando o método da classe Consulta
+        consulta.atualizarStatusNoArquivo(StatusConsulta.REALIZADA);
+
         // Montar conteúdo do relatório
         String conteudo = "Paciente ID: " + idPaciente +
-                          "\nData: " + dataConsulta +
-                          "\nHorário: " + horarioConsulta +
-                          "\nSintomas: " + sintomas +
-                          "\nTratamento sugerido: " + tratamentoSugerido +
-                          "\nExames: " + exames +
-                          "\nMedicamentos: " + medicamentos;
+                "\nData: " + dataConsulta +
+                "\nHorário: " + horarioConsulta +
+                "\nSintomas: " + sintomas +
+                "\nTratamento sugerido: " + tratamentoSugerido +
+                "\nExames: " + exames +
+                "\nMedicamentos: " + medicamentos +
+                "\nStatus: REALIZADA";
 
-        // Nome do arquivo relatório
-        String nomeArquivo = idPaciente + "_consultaRealizada_" + dataConsulta + "_" + horarioConsulta.replace(":", "-") + ".txt";
+        // Nome e pasta do arquivo de relatório
+        String nomeArquivoRelatorio = idPaciente + "_" + dataConsulta + "_" + horarioConsulta.replace(":", "-")
+                + "_relatorio.txt";
+        String pastaRelatorio = "dados_consultas/" + medico.getId() + "/";
+        new File(pastaRelatorio).mkdirs(); // cria pasta se não existir
 
         // Salvar arquivo do relatório
-        EscreverArquivo.escreverEmArquivo(nomeArquivo, "dados_consultas/" + medico.getId() + "/", conteudo);
-
-        // Apagar arquivo de agendamento para liberar o horário
-        String nomeArquivoAgendamento = idPaciente + "_" + dataConsulta + "_" + horarioConsulta.replace(":", "-") + ".txt";
-        File arquivoAgendamento = new File("dados_agendamentos/" + medico.getId() + "/" + nomeArquivoAgendamento);
-
-        if (arquivoAgendamento.exists() && arquivoAgendamento.delete()) {
-            System.out.println("Horário liberado após realização da consulta.");
-        } else {
-            System.out.println("Atenção: arquivo de agendamento não encontrado ou não pôde ser excluído.");
-        }
+        EscreverArquivo.escreverEmArquivo(nomeArquivoRelatorio, pastaRelatorio, conteudo);
 
         System.out.println("Consulta registrada com sucesso.");
     }
@@ -82,4 +102,5 @@ public class RealizarConsulta {
         File pasta = new File(caminho);
         LerArquivo.listarArquivos(pasta, "consulta", medico);
     }
+
 }

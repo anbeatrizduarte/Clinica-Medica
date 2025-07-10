@@ -1,0 +1,4 @@
+Médico: Kaynan (ID: 4028)
+Paciente: bia (ID: 3877)
+Data: 10/07/2025
+Hora: 09:00

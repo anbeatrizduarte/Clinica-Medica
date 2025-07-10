@@ -1,5 +1,6 @@
 import java.io.File;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -46,26 +47,9 @@ public class AgendadordeConsulta {
 
         LocalDate dataEscolhida = datasConsulta[escolhaData - 1];
 
-        // Verificar todos os horários ocupados
+        // Verificar horários ocupados
         Set<LocalTime> horariosOcupados = new HashSet<>();
-
-        List<Agendamento> agendamentosMedico = medico.getAgendamentos();
-        for (Agendamento ag : agendamentosMedico) {
-            if (ag.getData().equals(dataEscolhida)) {
-                horariosOcupados.add(ag.getHora());
-            }
-        }
-
-        // Buscar arquivos recursivamente para encontrar horários ocupados na data
-        List<File> arquivosEncontrados = new ArrayList<>();
-        buscarArquivos(new File("dados_agendamentos"), arquivosEncontrados, dataEscolhida);
-
-        for (File arquivo : arquivosEncontrados) {
-            String[] partes = arquivo.getName().split("_");
-            String horaParte = partes[2].replace(".txt", "").replace("-", ":");
-            LocalTime horaOcupada = LocalTime.parse(horaParte);
-            horariosOcupados.add(horaOcupada);
-        }
+        buscarHorariosOcupados(medico, dataEscolhida, horariosOcupados);
 
         LocalTime[] horariosConsultas = {
                 LocalTime.of(9, 0),
@@ -81,11 +65,7 @@ public class AgendadordeConsulta {
         }
 
         if (horariosDisponiveis.isEmpty()) {
-            // Lista de espera - adiciona o paciente para essa data
-            String chave = dataEscolhida.toString();
-            listaEspera.putIfAbsent(chave, new ArrayList<>());
-            listaEspera.get(chave).add(pacienteLogado);
-            System.out.println("Todos os horários estão ocupados. Você foi adicionado à lista de espera para " + chave);
+            adicionarListaEspera(dataEscolhida);
             return;
         }
 
@@ -103,10 +83,49 @@ public class AgendadordeConsulta {
         }
 
         LocalTime horaEscolhida = horariosDisponiveis.get(escolhaHora - 1);
+        finalizarAgendamento(medico, dataEscolhida, horaEscolhida);
+    }
 
-        Agendamento novo = new Agendamento(null, dataEscolhida, horaEscolhida);
+    private void buscarHorariosOcupados(UsuarioMedico medico, LocalDate data, Set<LocalTime> horariosOcupados) {
+        // Buscar nos agendamentos do médico
+        for (Agendamento ag : medico.getAgendamentos()) {
+            if (ag.getData().equals(data)) {
+                horariosOcupados.add(ag.getHora());
+            }
+        }
+
+        // Buscar nos arquivos
+        File pastaMedico = new File("dados_agendamentos/" + medico.getId() + "/");
+        if (pastaMedico.exists()) {
+            for (File arquivo : pastaMedico.listFiles()) {
+                if (arquivo.getName().contains(data.toString())) {
+                    String[] partes = arquivo.getName().split("_");
+                    String horaParte = partes[2].replace(".txt", "").replace("-", ":");
+                    horariosOcupados.add(LocalTime.parse(horaParte));
+                }
+            }
+        }
+    }
+
+    private void adicionarListaEspera(LocalDate data) {
+        String chave = data.toString();
+        listaEspera.putIfAbsent(chave, new ArrayList<>());
+        listaEspera.get(chave).add(pacienteLogado);
+        System.out.println("Todos os horários estão ocupados. Você foi adicionado à lista de espera para " + chave);
+    }
+
+    private void finalizarAgendamento(UsuarioMedico medico, LocalDate data, LocalTime hora) {
+        Agendamento novo = new Agendamento(null, data, hora);
         medico.adicionarAgendamento(novo);
-        EscreverArquivo.escreverAgendamento(medico, pacienteLogado, dataEscolhida, horaEscolhida);
+        EscreverArquivo.escreverAgendamento(medico, pacienteLogado, data, hora);
+        
+        Consulta novaConsulta = new Consulta(
+                medico,
+                pacienteLogado,
+                LocalDateTime.of(data, hora),
+                StatusConsulta.AGENDADA);
+        consultas.add(novaConsulta);
+
         System.out.println("Consulta marcada com sucesso!");
     }
 
@@ -122,24 +141,49 @@ public class AgendadordeConsulta {
         String medicoCancelar = sc.nextLine();
 
         UsuarioMedico medico = LerArquivo.buscarMedicoPorNome(medicoCancelar);
+        if (medico == null) {
+            System.out.println("Médico não encontrado.");
+            return;
+        }
 
         DateTimeFormatter formatoEntrada = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         LocalDate data = LocalDate.parse(dataCancelar, formatoEntrada);
+        LocalTime hora = LocalTime.parse(horarioCancelar);
+
+        // Atualizar status para CANCELADA
+        Consulta consulta = new Consulta(
+                medico,
+                pacienteLogado,
+                LocalDateTime.of(data, hora),
+                StatusConsulta.AGENDADA);
+        consulta.atualizarStatusNoArquivo(StatusConsulta.CANCELADA);
+
+        // Mover para histórico de cancelados
         String dataFormatada = data.toString();
         String horaFormatada = horarioCancelar.replace(":", "-");
+        String nomeArquivo = pacienteLogado.getId() + "_" + dataFormatada + "_" + horaFormatada + ".txt";
+        
+        File arquivoOriginal = new File("dados_agendamentos/" + medico.getId() + "/" + nomeArquivo);
+        File arquivoHistorico = new File("dados_cancelados/" + medico.getId() + "/" + nomeArquivo);
 
-        File arquivoConsultarDeletar = new File(
-                "dados_agendamentos/" + medico.getId() + "/" + pacienteLogado.getId() + "_" + dataFormatada + "_"
-                        + horaFormatada + ".txt");
-        if (arquivoConsultarDeletar.delete()) {
-            System.out.println("Consulta cancelada com sucesso!");
+        if (arquivoOriginal.exists()) {
+            if (arquivoOriginal.renameTo(arquivoHistorico)) {
+                System.out.println("Consulta cancelada e movida para histórico.");
+            } else {
+                System.out.println("Consulta cancelada, mas não foi possível mover para histórico.");
+            }
         } else {
-            System.out.println("Falha ao cancelar consulta.");
+            System.out.println("Arquivo da consulta não encontrado.");
         }
 
-        String chave = dataFormatada;
-        if (listaEspera.containsKey(chave) && !listaEspera.get(chave).isEmpty()) {
-            listaEspera.get(chave).remove(0);
+        // Notificar próximo da lista de espera
+        notificarListaEspera(dataFormatada);
+    }
+
+    private void notificarListaEspera(String data) {
+        if (listaEspera.containsKey(data) && !listaEspera.get(data).isEmpty()) {
+            UsuarioPaciente proximo = listaEspera.get(data).remove(0);
+            System.out.println("Paciente " + proximo.getNome() + " foi notificado sobre a vaga.");
         }
     }
 
@@ -149,18 +193,5 @@ public class AgendadordeConsulta {
 
     public void exibirConsultas() {
         LerArquivo.listarArquivos(new File("dados_agendamentos"), "consulta", pacienteLogado);
-    }
-
-    private void buscarArquivos(File pasta, List<File> lista, LocalDate dataEscolhida) {
-        File[] arquivos = pasta.listFiles();
-        if (arquivos != null) {
-            for (File f : arquivos) {
-                if (f.isDirectory()) {
-                    buscarArquivos(f, lista, dataEscolhida); // chamada recursiva para subpastas
-                } else if (f.getName().endsWith(".txt") && f.getName().contains(dataEscolhida.toString())) {
-                    lista.add(f);
-                }
-            }
-        }
     }
 }
